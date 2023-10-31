@@ -1,6 +1,10 @@
 class LikesController < ApplicationController
   before_action :set_like, only: %i[ show edit update destroy ]
 
+  before_action :is_an_authorized_user
+  def is_an_authorized_user
+    if current_user != @like.owner && @like.owner.private? && !current_user.leaders.include?(@like.owner)
+  end
   # GET /likes or /likes.json
   def index
     @likes = Like.all
