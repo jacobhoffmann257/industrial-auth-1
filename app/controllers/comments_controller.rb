@@ -1,13 +1,11 @@
 class CommentsController < ApplicationController
   before_action :set_comment, only: %i[ show edit update destroy ]
-  before_action :is_an_authorized_user, only: [:destroy, :create]
+  before_action :delete_comment, only: [:destroy]
+  before_action :update_method, only: [:update]
+  before_action :is_an_authorized_user, only: [ :create]
+  before_action { authorize(@comment || Comment) } 
 
-  def is_an_authorized_user
-    @photo = Photo.find(params.fetch(:comment).fetch(:photo_id))
-      if current_user != @photo.owner && @photo.owner.private? && !current_user.leaders.include?(@photo.owner)
-        redirect_back fallback_location: root_url, alert: "Not authorized"
-      end
-  end
+ 
   # GET /comments or /comments.json
   def index
     @comments = Comment.all
@@ -28,9 +26,10 @@ class CommentsController < ApplicationController
 
   # POST /comments or /comments.json
   def create
+    authorize @comment
     @comment = Comment.new(comment_params)
     @comment.author = current_user
-
+   
     respond_to do |format|
       if @comment.save
         format.html { redirect_back fallback_location: root_path, notice: "Comment was successfully created." }
@@ -74,4 +73,20 @@ class CommentsController < ApplicationController
     def comment_params
       params.require(:comment).permit(:author_id, :photo_id, :body)
     end
-end
+    def delete_comment
+      if !CommentPolicy.new(current_user, @comment).destroy?
+        raise Pundit::NotAuthorizedError, "not allowed"
+      end
+    end
+    def update_method
+      if !CommentPolicy.new(current_user, @comment).update?
+        raise Pundit::NotAuthorizedError, "not allowed"
+      end
+    end
+    def is_an_authorized_user
+      @comment = Comment.new(comment_params)
+      if !CommentPolicy.new(current_user, @comment).create?
+        raise Pundit::NotAuthorizedError, "not allowed"
+      end
+    end
+  end
