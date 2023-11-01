@@ -1,6 +1,6 @@
 class FollowRequestsController < ApplicationController
   before_action :set_follow_request, only: %i[ show edit update destroy ]
-
+  before_action { authorize(@follow_request || FollowRequest) }
   # GET /follow_requests or /follow_requests.json
   def index
     @follow_requests = FollowRequest.all
@@ -67,4 +67,4 @@ class FollowRequestsController < ApplicationController
     def follow_request_params
       params.require(:follow_request).permit(:recipient_id, :sender_id, :status)
     end
-end
+  end
